@@ -24,6 +24,10 @@
       "description": "Chatbot API URL",
       "required": true
     },
+    "API_KEY": {
+      "description": "Chatbot API URL",
+      "required": true
+    },
     "OWNER_ID": {
       "description": "Your Telegram User ID",
       "required": true
