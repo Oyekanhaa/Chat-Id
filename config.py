@@ -17,7 +17,7 @@ MONGO_URL = os.getenv("MONGO_URL", "")
 # ================== CHATBOT API ==================
 
 API_URL = os.getenv("API_URL", "")
-
+API_KEY = os.getenv("API_KEY", "")
 # ================== OWNER ==================
 
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
