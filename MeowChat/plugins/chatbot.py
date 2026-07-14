@@ -49,11 +49,11 @@ async def toggle_chatbot(client, message: Message):
         enums.ChatType.GROUP,
         enums.ChatType.SUPERGROUP,
     ]:
-        return await message.reply_text("âŒ This works only in groups")
+        return await message.reply_text("❌ This works only in groups")
 
     # Admin check
     if not await admin_check(message):
-        return await message.reply_text("âŒ You are not admin")
+        return await message.reply_text("❌ You are not admin")
 
     current = await is_enabled(chat_id)
     new = not current
@@ -64,8 +64,8 @@ async def toggle_chatbot(client, message: Message):
         upsert=True,
     )
 
-    status = "ON âœ…" if new else "OFF âŒ"
-    await message.reply_text(f"ðŸ¤– Chatbot is now {status}")
+    status = "ON ✅" if new else "OFF ❌"
+    await message.reply_text(f"🤖 Chatbot is now {status}")
 
 # ================== MAIN CHATBOT ==================
 
@@ -108,13 +108,19 @@ async def chatbot_reply(client, message: Message):
     # ================== API CALL ==================
 
     final_text = f"{PROMPT}\nUser: {message.text}"
-    payload = {"message": final_text}
+    
+    # We send both formats so it is compatible with both the custom panel endpoint and direct upstream endpoint
+    payload = {
+        "message": final_text,
+        "messages": [{"role": "user", "content": final_text}]
+    }
 
     try:
         headers = {
-            "Content-Type": "application/json",
-            "x-api-key": API_KEY
+            "Content-Type": "application/json"
         }
+        if API_KEY:
+            headers["x-api-key"] = API_KEY
 
         async with httpx.AsyncClient(timeout=10) as clientx:
             res = await clientx.post(API_URL, json=payload, headers=headers)
@@ -125,33 +131,20 @@ async def chatbot_reply(client, message: Message):
                     data.get("reply")
                     or data.get("response")
                     or data.get("message")
-                    or "ðŸ¤– No response"
-                )
-            else:
-                reply = "âš ï¸ API Error"
-
-        await message.reply_text(reply)
-
-    except Exception as e:
-        print("Chatbot Error:", e)
-        await message.reply_text("âš ï¸ Something went wrong")
-    try:
-        async with httpx.AsyncClient(timeout=10) as clientx:
-            res = await clientx.post(API_URL, json=payload)
-
-            if res.status_code == 200:
-                data = res.json()
-                reply = (
-                    data.get("reply")
-                    or data.get("response")
-                    or data.get("message")
+                    or (isinstance(data, dict) and data.get("messages") and isinstance(data["messages"], list) and data["messages"][-1].get("content"))
                     or "🤖 No response"
                 )
             else:
-                reply = "⚠️ API Error"
+                try:
+                    err_data = res.json()
+                    err_msg = err_data.get("error") or err_data.get("message") or f"Status {res.status_code}"
+                except Exception:
+                    err_msg = res.text or f"Status {res.status_code}"
+                reply = f"⚠️ API Error: {err_msg}"
 
         await message.reply_text(reply)
 
     except Exception as e:
         print("Chatbot Error:", e)
-        await message.reply_text("⚠️ Something went wrong")
+        await message.reply_text(f"⚠️ Something went wrong: {str(e)}")
+
