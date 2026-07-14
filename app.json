@@ -16,6 +16,10 @@
       "description": "Generate using Pyrogram session generator",
       "required": true
     },
+    "API_KEY": {
+      "description": "Chatbot API URL",
+      "required": true
+    },
     "MONGO_URL": {
       "description": "MongoDB connection string",
       "required": true
