@@ -72,37 +72,19 @@ async def toggle_chatbot(client, message: Message):
 @app.on_message(filters.text & ~filters.command(["chatbot"]))
 async def chatbot_reply(client, message: Message):
     chat_id = message.chat.id
+    chat_type = message.chat.type
 
-    # Only reply if enabled in group
-    if message.chat.type in [
-        enums.ChatType.GROUP,
-        enums.ChatType.SUPERGROUP,
-    ]:
+    # Prevent replying to other bots or oneself to avoid infinite loops
+    if message.from_user and (message.from_user.is_bot or message.from_user.is_self):
+        return
+
+    # Only reply if private chat OR if chatbot is enabled in group
+    is_private = chat_type == enums.ChatType.PRIVATE
+    if not is_private:
         if not await is_enabled(chat_id):
             return
 
     if not message.text:
-        return
-
-    text = message.text.lower()
-
-    # ================== CONDITIONS ==================
-
-    should_reply = False
-
-    # 1. Reply to bot message
-    if message.reply_to_message:
-        if (
-            message.reply_to_message.from_user
-            and message.reply_to_message.from_user.is_bot
-        ):
-            should_reply = True
-
-    # 2. Trigger word
-    if any(word in text for word in TRIGGER_WORDS):
-        should_reply = True
-
-    if not should_reply:
         return
 
     # ================== API CALL ==================
