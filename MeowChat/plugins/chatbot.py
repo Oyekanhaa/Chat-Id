@@ -4,7 +4,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pyrogram import enums, filters
 from pyrogram.types import Message
 
-from config import API_URL, MONGO_URL
+# Import variables from config
+from config import API_URL, MONGO_URL, API_KEY
+
 from MeowChat import app
 from MeowChat.utils.admins import admin_check
 
@@ -47,11 +49,11 @@ async def toggle_chatbot(client, message: Message):
         enums.ChatType.GROUP,
         enums.ChatType.SUPERGROUP,
     ]:
-        return await message.reply_text("❌ This works only in groups")
+        return await message.reply_text("âŒ This works only in groups")
 
     # Admin check
     if not await admin_check(message):
-        return await message.reply_text("❌ You are not admin")
+        return await message.reply_text("âŒ You are not admin")
 
     current = await is_enabled(chat_id)
     new = not current
@@ -62,8 +64,8 @@ async def toggle_chatbot(client, message: Message):
         upsert=True,
     )
 
-    status = "ON ✅" if new else "OFF ❌"
-    await message.reply_text(f"🤖 Chatbot is now {status}")
+    status = "ON âœ…" if new else "OFF âŒ"
+    await message.reply_text(f"ðŸ¤– Chatbot is now {status}")
 
 # ================== MAIN CHATBOT ==================
 
@@ -107,6 +109,32 @@ async def chatbot_reply(client, message: Message):
 
     final_text = f"{PROMPT}\nUser: {message.text}"
     payload = {"message": final_text}
+
+    try:
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-key": API_KEY
+        }
+
+        async with httpx.AsyncClient(timeout=10) as clientx:
+            res = await clientx.post(API_URL, json=payload, headers=headers)
+
+            if res.status_code == 200:
+                data = res.json()
+                reply = (
+                    data.get("reply")
+                    or data.get("response")
+                    or data.get("message")
+                    or "ðŸ¤– No response"
+                )
+            else:
+                reply = "âš ï¸ API Error"
+
+        await message.reply_text(reply)
+
+    except Exception as e:
+        print("Chatbot Error:", e)
+        await message.reply_text("âš ï¸ Something went wrong")    payload = {"message": final_text}
 
     try:
         async with httpx.AsyncClient(timeout=10) as clientx:
